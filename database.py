@@ -45,30 +45,6 @@ class Database:
             logger.critical(f"Ошибка создания пула соединений: {e}")
             raise
 
-    async def _fill_exercises(self, conn):
-        """
-        Заполнение таблицы упражнений базовыми данными
-        """
-        exercises = [
-            ("Жим штанги лежа", "Грудь"),
-            ("Приседания со штангой", "Ноги"),
-            ("Становая тяга", "Спина"),
-            ("Подтягивания", "Спина"),
-            ("Отжимания", "Грудь"),
-            ("Жим гантелей сидя", "Плечи"),
-            ("Сгибания на бицепс", "Руки"),
-            ("Французский жим", "Руки"),
-            ("Выпады", "Ноги"),
-            ("Планка", "Пресс")
-        ]
-
-        for name, muscle in exercises:
-            await conn.execute('''
-            INSERT INTO EXERCISE (name, muscle_group)
-            VALUES ($1, $2)
-            ON CONFLICT (name) DO NOTHING
-            ''', name, muscle)
-
     async def init_tables(self) -> None:
         """
         Инициализация таблиц
@@ -76,7 +52,7 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
                 await conn.execute('''
-                CREATE TABLE IF NOT EXISTS USER (
+                CREATE TABLE IF NOT EXISTS "USER" (
                     id SERIAL PRIMARY KEY,
                     telegram_id INTEGER UNIQUE NOT NULL
                 )
@@ -84,13 +60,14 @@ class Database:
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS WORKOUT (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER UNIQUE NOT NULL REFERENCES USER(id),
+                    user_id INTEGER UNIQUE NOT NULL REFERENCES "USER"(id),
                     date DATE NOT NULL DEFAULT CURRENT_DATE
                 )
                 ''')
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS EXERCISE (
                     id SERIAL PRIMARY KEY,
+                    user_id INTEGER UNIQUE NOT NULL REFERENCES "USER"(id),
                     muscle_group VARCHAR(50),
                     name VARCHAR(50)
                 )
@@ -106,41 +83,114 @@ class Database:
                 )
                 ''')
                 logging.info("Таблица создана успешно")
-                await self._fill_exercises(conn)
-                logging.info("В таблицу добавлены базовые упражнения")
         except Exception as e:
             logging.critical(f"Критическая ошибка при создании таблицы {e}")
+
+    async def _fill_exercises(self, user_id):
+        """
+        Заполнение таблицы упражнений базовыми данными
+        """
+        try:
+            exercises = [
+                ("Жим штанги лежа", "Грудь"),
+                ("Приседания со штангой", "Ноги"),
+                ("Становая тяга", "Спина"),
+                ("Подтягивания", "Спина"),
+                ("Отжимания", "Грудь"),
+                ("Жим гантелей сидя", "Плечи"),
+                ("Сгибания на бицепс", "Руки"),
+                ("Французский жим", "Руки"),
+                ("Выпады", "Ноги"),
+                ("Планка", "Пресс")
+            ]
+
+            for name, muscle in exercises:
+                    async with self.pool.acquire() as conn:
+                    await conn.execute('''
+                    INSERT INTO EXERCISE (name, muscle_group, user_id)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (name) DO NOTHING
+                    ''', name, muscle, user_id)
+            logger.info("База данных заполнена успешно")
+        except Exception as e:
+            logger.critical(f"Ошибка заполнения базы данных: {e}")
+            raise
 
     async def get_create_user(self, telegram_id) -> int:
         """
         Получить или создать пользователя
         """
-        async with self.pool.acquire() as conn:
-            user_id = await conn.fetchval('''
-                INSERT INTO USER (telegram_id)
-                VALUES ($1)
-                ON CONFLICT (telegram_id)
-                DO UPDATE SET
-                    telegram_id = EXCLUDED.telegram_id
-                RETURNING id
-                ''', telegram_id)
-            return user_id
+        try:
+            async with self.pool.acquire() as conn:
+                user_id = await conn.fetchval('''
+                    INSERT INTO "USER" (telegram_id)
+                    VALUES ($1)
+                    ON CONFLICT (telegram_id)
+                    DO UPDATE SET
+                        telegram_id = EXCLUDED.telegram_id
+                    RETURNING id
+                    ''', telegram_id)
+                logger.info("Пользователь создан или получен")
+                return user_id
+        except Exception as e:
+            logger.critical(f"Ошибка при получении или создании пользователя: {e}")
+            raise
 
     async def create_workout(self, user_id: int) -> int:
         """
         Создать новую тренировку
         """
-        async with self.pool.acquire() as conn:
-            workout_id = await conn.fetchval('''
-            INSERT INTO WORKOUT (user_id)
-            VALUES ($1)
-            RETURNING id
-            ''', user_id)
-            return workout_id
+        try:
+            async with self.pool.acquire() as conn:
+                workout_id = await conn.fetchval('''
+                    INSERT INTO WORKOUT (user_id)
+                    VALUES ($1)
+                    RETURNING id
+                    ''', user_id)
+                logger.info("Тренировка успешно создана")
+                return workout_id
+        except Exception as e:
+            logger.critical(f"Ошибка при создании тренировки: {e}")
+            raise
 
+    async def create_exercise(self, muscle_group: str, name: str, user_id: int) -> int:
+        """
+        Создать новое упражнение
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                exercise_id = await conn.fetchval('''
+                    INSERT INTO EXERCISE (name, muscle_group, user_id)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (name) DO NOTHING
+                    RETURNING id
+                    ''', name, muscle_group, user_id)
+                logger.info("Упражнение успешно создано")
+                return exercise_id
+        except Exception as e:
+            logger.critical(f"Ошибка при создании упражнения: {e}")
+            raise
+
+    async def get_exercises(self, user_id: int) -> List[Dict]:
+        """
+        Получить упражнения пользователя
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                exercises = await conn.fetch('''
+                    SELECT e.name, e.muscle_group FROM EXERCISE e
+                    WHERE e.user_id = $1
+                    ''', user_id)
+                logger.info("Упражнения успешно получены")
+                return [dict(e) for e in exercises]
+        except Exception as e:
+            logger.critical(f"Ошибка при получении упражнении: {e}")
+            raise
+
+    # переписать
     async def get_user_workouts(self, user_id: int, limit: int = 1) -> List[Dict]:
             """
-            Получить последние тренировки пользователя
+            Получить тренировки пользователя
             """
             async with self.pool.acquire() as conn:
                 workouts = await conn.fetch('''
@@ -148,7 +198,7 @@ class Database:
                        COUNT(s.id) as exercise_count,
                        SUM(s.weight * s.reps) as total_volume
                 FROM WORKOUT w
-                LEFT JOIN "set" s ON w.id = s.workout_id
+                LEFT JOIN SET s ON w.id = s.workout_id
                 WHERE w.user_id = $1
                 GROUP BY w.id, w.date
                 ORDER BY w.date DESC
@@ -159,38 +209,35 @@ class Database:
     async def add_set_to_workout(self, workout_id: int, exercise_id: int,
                                 set_order: int, weight: float, reps: int) -> int:
         """Добавить подход к тренировке"""
-        async with self.pool.acquire() as conn:
-            set_id = await conn.fetchval('''
-            INSERT INTO SET (workout_id, exercise_id, set_order, weight, reps)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id
-            ''', workout_id, exercise_id, set_order, weight, reps)
-            return set_id
+        try:
+            async with self.pool.acquire() as conn:
+                set_id = await conn.fetchval('''
+                INSERT INTO SET (workout_id, exercise_id, set_order, weight, reps)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+                ''', workout_id, exercise_id, set_order, weight, reps)
+                logger.info("Подход успешно добавлен")
+                return set_id
+        except Exception as e:
+            logger.critical(f"Ошибка при добавлении подхода к тренировке: {e}")
+            raise
 
     async def get_workout_sets(self, workout_id: int) -> List[Dict]:
         """
         Получить все подходы тренировки
         """
-        async with self.pool.acquire() as conn:
-            sets = await conn.fetch('''
-            SELECT s.id, s.set_order, s.weight, s.reps,
-                    e.name as exercise_name, e.muscle_group
-            FROM SET s
-            JOIN EXERCISE e ON s.exercise_id = e.id
-            WHERE s.workout_id = $1
-            ORDER BY s.set_order
-            ''', workout_id)
-            return [dict(s) for s in sets]
-
-    async def get_workout_details(self, workout_id: int) -> Dict:
-        """
-        Получить детальную информацию о тренировке
-        """
-        async with self.pool.acquire() as conn:
-            workout = await conn.fetchrow('''
-            SELECT w.*
-            FROM WORKOUT w
-            JOIN USER u ON w.user_id = u.id
-            WHERE w.id = $1
-            ''', workout_id)
-            return dict(workout) if workout else None
+        try:
+            async with self.pool.acquire() as conn:
+                sets = await conn.fetch('''
+                SELECT s.id, s.set_order, s.weight, s.reps,
+                        e.name as exercise_name, e.muscle_group
+                FROM SET s
+                JOIN EXERCISE e ON s.exercise_id = e.id
+                WHERE s.workout_id = $1
+                ORDER BY s.set_order
+                ''', workout_id)
+                logger.info("Все подходы успешно получены")
+                return [dict(s) for s in sets]
+        except Exception as e:
+            logger.critical(f"Ошибка при получении подходов: {e}")
+            raise
