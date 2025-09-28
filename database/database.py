@@ -4,9 +4,11 @@ import asyncio
 from typing import Optional, Dict, Any, List
 import os
 import logging
+from logger_config import setup_logging
 from dotenv import load_dotenv
 
 load_dotenv()
+setup_logging()
 logger = logging.getLogger(__name__)
 
 class Database:
@@ -106,11 +108,11 @@ class Database:
 
             for name, muscle in exercises:
                     async with self.pool.acquire() as conn:
-                    await conn.execute('''
-                    INSERT INTO EXERCISE (name, muscle_group, user_id)
-                    VALUES ($1, $2, $3)
-                    ON CONFLICT (name) DO NOTHING
-                    ''', name, muscle, user_id)
+                        await conn.execute('''
+                        INSERT INTO EXERCISE (name, muscle_group, user_id)
+                        VALUES ($1, $2, $3)
+                        ON CONFLICT (name) DO NOTHING
+                        ''', name, muscle, user_id)
             logger.info("База данных заполнена успешно")
         except Exception as e:
             logger.critical(f"Ошибка заполнения базы данных: {e}")
