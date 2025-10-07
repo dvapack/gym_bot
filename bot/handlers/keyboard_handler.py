@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery
-from bot.keyboard.keyboard import get_main_keyboard
+from bot.keyboard.keyboard import get_main_keyboard, start_workout_keyboard
 from database.database import Database
 
 db: Database = None
@@ -9,16 +9,17 @@ db: Database = None
 router = Router()
 user_id = None
 
+# TODO добавить docstring
 @router.callback_query(F.data == "new_workout")
 async def create_new_workout(callback: CallbackQuery):
     """
     Хендлер нажатия на кнопку "Новая тренировка"
     """
     if db is None or db.pool is None:
-        await message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
         return
-    user = message.from_user
-    user_id = await db.get_create_user(user.id)
+    user = callback.message.from_user
+    workout_id = await db.create_workout(user.id)
 
     text = f"""
     Привет, {user.first_name}!
@@ -29,8 +30,8 @@ async def create_new_workout(callback: CallbackQuery):
 /new_workout - Начать новую тренировку
 /my_workouts - Мои последние тренировки
     """
-    await message.answer(
+    await callback.message.answer(
         text,
-        reply_markup=get_main_keyboard()
+        reply_markup=start_workout_keyboard()
     )
 

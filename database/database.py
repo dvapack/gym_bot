@@ -4,10 +4,9 @@ from typing import Optional, Dict, Any, List
 import os
 import logging
 from configs.logger_config import setup_logging
-from dotenv import load_dotenv
 from configs.config_reader import config
 
-load_dotenv()
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,8 @@ class Database:
             'host': config.db_host,
             'port': config.db_port
         }
-
+    
+    # TODO добавить docstring
     async def create_pool(self) -> None:
         """
         Создание пула соединений
@@ -47,6 +47,7 @@ class Database:
             logger.critical(f"Ошибка создания пула соединений: {e}")
             raise
 
+    # TODO добавить docstring
     async def init_tables(self) -> None:
         """
         Инициализация таблиц
@@ -88,6 +89,7 @@ class Database:
         except Exception as e:
             logging.critical(f"Критическая ошибка при создании таблицы {e}")
 
+    # TODO добавить docstring
     async def _fill_exercises(self, user_id):
         """
         Заполнение таблицы упражнений базовыми данными
@@ -118,6 +120,7 @@ class Database:
             logger.critical(f"Ошибка заполнения базы данных: {e}")
             raise
 
+    # TODO добавить docstring
     async def get_create_user(self, telegram_id) -> int:
         """
         Получить или создать пользователя
@@ -138,6 +141,7 @@ class Database:
             logger.critical(f"Ошибка при получении или создании пользователя: {e}")
             raise
 
+    # TODO добавить docstring
     async def create_workout(self, user_id: int) -> int:
         """
         Создать новую тренировку
@@ -154,7 +158,8 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при создании тренировки: {e}")
             raise
-
+    
+    # TODO добавить docstring
     async def create_exercise(self, muscle_group: str, name: str, user_id: int) -> int:
         """
         Создать новое упражнение
@@ -172,7 +177,8 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при создании упражнения: {e}")
             raise
-
+    
+    # TODO добавить docstring
     async def get_exercises_by_muscle_group(self, user_id: int, muscle_group: str) -> List[str]:
         """
         Получить упражнения пользователя
@@ -188,7 +194,8 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при получении упражнении: {e}")
             raise
-
+    
+    # TODO добавить docstring
     async def get_muscle_groups(self, user_id: int) -> List[str]:
         """
         Получить группы мышц пользователя
@@ -206,25 +213,26 @@ class Database:
             logger.critical(f"Ошибка при получении групп мышц: {e}")
             raise
 
-    # переписать
+    # # TODO переписать
     async def get_user_workouts(self, user_id: int, limit: int = 1) -> List[Dict]:
-            """
-            Получить тренировки пользователя
-            """
-            async with self.pool.acquire() as conn:
-                workouts = await conn.fetch('''
-                SELECT w.id, w.date,
-                       COUNT(s.id) as exercise_count,
-                       SUM(s.weight * s.reps) as total_volume
-                FROM WORKOUT w
-                LEFT JOIN SET s ON w.id = s.workout_id
-                WHERE w.user_id = $1
-                GROUP BY w.id, w.date
-                ORDER BY w.date DESC
-                LIMIT $2
-                ''', user_id, limit)
-                return [dict(w) for w in workouts]
+        """
+        Получить тренировки пользователя
+        """
+        async with self.pool.acquire() as conn:
+            workouts = await conn.fetch('''
+            SELECT w.id, w.date,
+                    COUNT(s.id) as exercise_count,
+                    SUM(s.weight * s.reps) as total_volume
+            FROM WORKOUT w
+            LEFT JOIN SET s ON w.id = s.workout_id
+            WHERE w.user_id = $1
+            GROUP BY w.id, w.date
+            ORDER BY w.date DESC
+            LIMIT $2
+            ''', user_id, limit)
+            return [dict(w) for w in workouts]
 
+    # TODO добавить docstring
     async def add_set_to_workout(self, workout_id: int, exercise_id: int,
                                 set_order: int, weight: float, reps: int) -> int:
         """Добавить подход к тренировке"""
@@ -240,7 +248,8 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при добавлении подхода к тренировке: {e}")
             raise
-
+    
+    # TODO добавить docstring
     async def get_workout_sets(self, workout_id: int) -> List[Dict]:
         """
         Получить все подходы тренировки

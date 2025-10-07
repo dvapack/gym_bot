@@ -9,6 +9,7 @@ db: Database = None
 router = Router()
 user_id = None
 
+# TODO добавить docstring
 @router.message(Command("start"))
 async def command_start(message: Message):
     """

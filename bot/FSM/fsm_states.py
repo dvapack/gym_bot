@@ -36,7 +36,8 @@ async def load_exercises(user_id: int, muscle_group: str) -> List[str]:
         return available_exercises
     available_exercises = await db.get_exercises_by_muscle_group(user_id, muscle_group)
     return available_exercises
-    
+
+# TODO пересмотреть состояния
 class States(StatesGroup):
     choosing_muscle_group = State()
     adding_muscle_group = State()
