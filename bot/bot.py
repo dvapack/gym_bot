@@ -1,4 +1,3 @@
-import os
 import asyncio
 from typing import List, Dict
 from aiogram import Bot, Dispatcher, Router, F
@@ -6,17 +5,16 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from dotenv import load_dotenv
 from database.database import Database
 import logging
-from logger.logger_config import setup_logging
-from .keyboard import get_main_keyboard, get_exercise_keyboard, get_back_keyboard
+from configs.logger_config import setup_logging
+from configs.config_reader import config
+from bot.handlers import user_input_handler, keyboard_handler
 
-load_dotenv()
+
 setup_logging()
 logger = logging.getLogger(__name__)
 db = Database()
-router = Router()
 
 
 async def main():
@@ -24,12 +22,16 @@ async def main():
     await db.create_pool()
     await db.init_tables()
 
-    bot = Bot(token=os.getenv("BOT_TOKEN"))
+    user_input_handler.db = db
+    keyboard_handler.db = db
+
+    bot = Bot(token=config.bot_token.get_secret_value())
     dp = Dispatcher()
-    dp.include_router(router)
+    dp.include_router(user_input_handler.router, keyboard_handler.router)
 
     logger.info("Бот запускается")
 
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

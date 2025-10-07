@@ -1,11 +1,11 @@
 from anaconda_catalogs.catalog import USER_AGENT
 import asyncpg
-import asyncio
 from typing import Optional, Dict, Any, List
 import os
 import logging
-from logger_config import setup_logging
+from configs.logger_config import setup_logging
 from dotenv import load_dotenv
+from configs.config_reader import config
 
 load_dotenv()
 setup_logging()
@@ -23,11 +23,11 @@ class Database:
             Dict[str, Any]: Параметры подключения к базе данных
         """
         return {
-            'database': os.getenv('DB_NAME'),
-            'user': os.getenv('DB_USER'),
-            'password': os.getenv('DB_PASSWORD'),
-            'host': os.getenv('DB_HOST'),
-            'port': os.getenv('DB_PORT')
+            'database': config.db_name,
+            'user': config.db_user,
+            'password': config.db_password.get_secret_value(),
+            'host': config.db_host,
+            'port': config.db_port
         }
 
     async def create_pool(self) -> None:
@@ -173,20 +173,37 @@ class Database:
             logger.critical(f"Ошибка при создании упражнения: {e}")
             raise
 
-    async def get_exercises(self, user_id: int) -> List[Dict]:
+    async def get_exercises_by_muscle_group(self, user_id: int, muscle_group: str) -> List[str]:
         """
         Получить упражнения пользователя
         """
         try:
             async with self.pool.acquire() as conn:
                 exercises = await conn.fetch('''
-                    SELECT e.name, e.muscle_group FROM EXERCISE e
-                    WHERE e.user_id = $1
-                    ''', user_id)
+                    SELECT e.name FROM EXERCISE e
+                    WHERE e.user_id = $1 AND e.muscle_group = $2
+                    ''', user_id, muscle_group)
                 logger.info("Упражнения успешно получены")
-                return [dict(e) for e in exercises]
+                return [row['name'] for row in exercises]
         except Exception as e:
             logger.critical(f"Ошибка при получении упражнении: {e}")
+            raise
+
+    async def get_muscle_groups(self, user_id: int) -> List[str]:
+        """
+        Получить группы мышц пользователя
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                muscle_groups = await conn.fetch('''
+                    SELECT DISTINCT e.muscle_group FROM EXERCISE e
+                    WHERE e.user_id = $1
+                    ORDER BY e.muscle_group
+                    ''', user_id)
+                logger.info("Группы мышц успешно получены")
+                return [row['muscle_group'] for row in muscle_groups]
+        except Exception as e:
+            logger.critical(f"Ошибка при получении групп мышц: {e}")
             raise
 
     # переписать
