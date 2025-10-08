@@ -56,21 +56,20 @@ class Database:
             async with self.pool.acquire() as conn:
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "USER" (
-                    id SERIAL PRIMARY KEY,
-                    telegram_id INTEGER UNIQUE NOT NULL
+                    telegram_id BIGINT PRIMARY KEY
                 )
                 ''')
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS WORKOUT (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER UNIQUE NOT NULL REFERENCES "USER"(id),
+                    user_id BIGINT UNIQUE NOT NULL REFERENCES "USER"(telegram_id),
                     date DATE NOT NULL DEFAULT CURRENT_DATE
                 )
                 ''')
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS EXERCISE (
                     id SERIAL PRIMARY KEY,
-                    user_id INTEGER UNIQUE NOT NULL REFERENCES "USER"(id),
+                    user_id BIGINT UNIQUE NOT NULL REFERENCES "USER"(telegram_id),
                     muscle_group VARCHAR(50),
                     name VARCHAR(50)
                 )
@@ -121,22 +120,21 @@ class Database:
             raise
 
     # TODO добавить docstring
-    async def get_create_user(self, telegram_id) -> int:
+    async def get_create_user(self, telegram_id: int) -> int:
         """
         Получить или создать пользователя
         """
         try:
             async with self.pool.acquire() as conn:
-                user_id = await conn.fetchval('''
-                    INSERT INTO "USER" (telegram_id)
+                await conn.execute('''
+                    INSERT INTO "USER" (id)
                     VALUES ($1)
-                    ON CONFLICT (telegram_id)
-                    DO UPDATE SET
-                        telegram_id = EXCLUDED.telegram_id
+                    ON CONFLICT (id)
+                    DO NOTHING
                     RETURNING id
                     ''', telegram_id)
                 logger.info("Пользователь создан или получен")
-                return user_id
+                return telegram_id
         except Exception as e:
             logger.critical(f"Ошибка при получении или создании пользователя: {e}")
             raise
