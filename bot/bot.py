@@ -10,6 +10,7 @@ import logging
 from configs.logger_config import setup_logging
 from configs.config_reader import config
 from bot.handlers import user_input_handler, keyboard_handler
+from bot.FSM import fsm_states
 
 
 setup_logging()
@@ -24,10 +25,12 @@ async def main():
 
     user_input_handler.db = db
     keyboard_handler.db = db
+    fsm_states.db = db
+
 
     bot = Bot(token=config.bot_token.get_secret_value())
     dp = Dispatcher()
-    dp.include_router(user_input_handler.router, keyboard_handler.router)
+    dp.include_routers(user_input_handler.router, keyboard_handler.router)
 
     logger.info("Бот запускается")
 

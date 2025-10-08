@@ -1,6 +1,7 @@
 from typing import List, Dict
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+# TODO добавить логгер
 def get_main_keyboard():
     """
     Основная клавиатура
@@ -17,7 +18,8 @@ def get_main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # TODO пересмотреть кнопки
-def start_workout_keyboard(muscle_groups: List[str] = None):
+# TODO добавить логгер
+def start_workout_keyboard(muscle_groups: List[str]):
     """
     Клавиатура для новой тренировки
 
@@ -29,30 +31,28 @@ def start_workout_keyboard(muscle_groups: List[str] = None):
     """
     keyboard = []
     for muscle_group in muscle_groups:
-        keyboard.append([InlineKeyboardButton(text=muscle_group, callback_data="select_muscle_group")])
-    keyboard.append([InlineKeyboardButton(text="Новое упражнение", callback_data="new_exersice")])
+        keyboard.append([InlineKeyboardButton(text=muscle_group, callback_data=f"select_muscle_group:{muscle_group}")])
+    keyboard.append([InlineKeyboardButton(text="Новая группа мышц", callback_data="new_muscle_group")])
     keyboard.append([InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")])
     keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_main")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # TODO добавить docstring
-def get_exercise_keyboard(exercises: List[Dict]):
+# TODO добавить логгер
+def get_exercise_keyboard(exercises: List[str]):
     """
     Клавиатура для выбора упражнения
     """
     keyboard = []
     for exercise in exercises:
-        keyboard.append([
-            InlineKeyboardButton(
-                text=f"{exercise['name']} ({exercise['muscle_group']})",
-                callback_data=f"ex_{exercise['name']}_{exercise['muscle_group']}"
-            )
-        ])
-    keyboard.append([InlineKeyboardButton(text="Новое упражнение", callback_data="new_exersice")])
+        keyboard.append([InlineKeyboardButton(text=exercise, callback_data="select_exercise")])
+    keyboard.append([InlineKeyboardButton(text="Новое упражнение", callback_data="new_exercise")])
+    keyboard.append([InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")])
     keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_main")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # TODO добавить docstring
+# TODO добавить логгер
 def get_back_keyboard():
     """
     Клавиатура с кнопкой Назад

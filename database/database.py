@@ -54,6 +54,12 @@ class Database:
         """
         try:
             async with self.pool.acquire() as conn:
+
+                await conn.execute('DROP TABLE IF EXISTS "SET" CASCADE')
+                await conn.execute('DROP TABLE IF EXISTS WORKOUT CASCADE')
+                await conn.execute('DROP TABLE IF EXISTS EXERCISE CASCADE')
+                await conn.execute('DROP TABLE IF EXISTS "USER" CASCADE')
+
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "USER" (
                     telegram_id BIGINT PRIMARY KEY
@@ -62,26 +68,28 @@ class Database:
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS WORKOUT (
                     id SERIAL PRIMARY KEY,
-                    user_id BIGINT UNIQUE NOT NULL REFERENCES "USER"(telegram_id),
+                    telegram_id BIGINT NOT NULL REFERENCES "USER"(telegram_id),
                     date DATE NOT NULL DEFAULT CURRENT_DATE
                 )
                 ''')
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS EXERCISE (
                     id SERIAL PRIMARY KEY,
-                    user_id BIGINT UNIQUE NOT NULL REFERENCES "USER"(telegram_id),
+                    telegram_id BIGINT NOT NULL REFERENCES "USER"(telegram_id),
                     muscle_group VARCHAR(50),
-                    name VARCHAR(50)
+                    name VARCHAR(50) NOT NULL,
+                    UNIQUE(telegram_id, name)
                 )
                 ''')
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS SET (
                     id SERIAL PRIMARY KEY,
-                    workout INTEGER UNIQUE NOT NULL REFERENCES WORKOUT(id) ON DELETE CASCADE,
-                    exercise INTEGER UNIQUE NOT NULL REFERENCES EXERCISE(id),
+                    workout INTEGER NOT NULL REFERENCES WORKOUT(id) ON DELETE CASCADE,
+                    exercise INTEGER NOT NULL REFERENCES EXERCISE(id),
                     set_order INTEGER NOT NULL,
                     weight DECIMAL(3, 2),
-                    reps INTEGER NOT NULL
+                    reps INTEGER NOT NULL,
+                    UNIQUE(workout, exercise, set_order)
                 )
                 ''')
                 logging.info("Таблица создана успешно")
@@ -89,7 +97,7 @@ class Database:
             logging.critical(f"Критическая ошибка при создании таблицы {e}")
 
     # TODO добавить docstring
-    async def _fill_exercises(self, user_id):
+    async def _fill_exercises(self, telegram_id):
         """
         Заполнение таблицы упражнений базовыми данными
         """
@@ -107,13 +115,13 @@ class Database:
                 ("Планка", "Пресс")
             ]
 
-            for name, muscle in exercises:
-                    async with self.pool.acquire() as conn:
-                        await conn.execute('''
-                        INSERT INTO EXERCISE (name, muscle_group, user_id)
-                        VALUES ($1, $2, $3)
-                        ON CONFLICT (name) DO NOTHING
-                        ''', name, muscle, user_id)
+            async with self.pool.acquire() as conn:
+                for name, muscle in exercises:
+                    await conn.execute('''
+                    INSERT INTO EXERCISE (name, muscle_group, telegram_id)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (telegram_id, name) DO NOTHING
+                    ''', name, muscle, telegram_id)
             logger.info("База данных заполнена успешно")
         except Exception as e:
             logger.critical(f"Ошибка заполнения базы данных: {e}")
@@ -127,30 +135,29 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
                 await conn.execute('''
-                    INSERT INTO "USER" (id)
+                    INSERT INTO "USER" (telegram_id)
                     VALUES ($1)
-                    ON CONFLICT (id)
+                    ON CONFLICT (telegram_id)
                     DO NOTHING
-                    RETURNING id
                     ''', telegram_id)
-                logger.info("Пользователь создан или получен")
+                logger.info(f"Пользователь {telegram_id} создан или получен")
                 return telegram_id
         except Exception as e:
             logger.critical(f"Ошибка при получении или создании пользователя: {e}")
             raise
 
     # TODO добавить docstring
-    async def create_workout(self, user_id: int) -> int:
+    async def create_workout(self, telegram_id: int) -> int:
         """
         Создать новую тренировку
         """
         try:
             async with self.pool.acquire() as conn:
                 workout_id = await conn.fetchval('''
-                    INSERT INTO WORKOUT (user_id)
+                    INSERT INTO WORKOUT (telegram_id)
                     VALUES ($1)
                     RETURNING id
-                    ''', user_id)
+                    ''', telegram_id)
                 logger.info("Тренировка успешно создана")
                 return workout_id
         except Exception as e:
@@ -158,18 +165,18 @@ class Database:
             raise
     
     # TODO добавить docstring
-    async def create_exercise(self, muscle_group: str, name: str, user_id: int) -> int:
+    async def create_exercise(self, muscle_group: str, name: str, telegram_id: int) -> int:
         """
         Создать новое упражнение
         """
         try:
             async with self.pool.acquire() as conn:
                 exercise_id = await conn.fetchval('''
-                    INSERT INTO EXERCISE (name, muscle_group, user_id)
+                    INSERT INTO EXERCISE (name, muscle_group, telegram_id)
                     VALUES ($1, $2, $3)
                     ON CONFLICT (name) DO NOTHING
                     RETURNING id
-                    ''', name, muscle_group, user_id)
+                    ''', name, muscle_group, telegram_id)
                 logger.info("Упражнение успешно создано")
                 return exercise_id
         except Exception as e:
@@ -177,7 +184,7 @@ class Database:
             raise
     
     # TODO добавить docstring
-    async def get_exercises_by_muscle_group(self, user_id: int, muscle_group: str) -> List[str]:
+    async def get_exercises_by_muscle_group(self, telegram_id: int, muscle_group: str) -> List[str]:
         """
         Получить упражнения пользователя
         """
@@ -185,8 +192,8 @@ class Database:
             async with self.pool.acquire() as conn:
                 exercises = await conn.fetch('''
                     SELECT e.name FROM EXERCISE e
-                    WHERE e.user_id = $1 AND e.muscle_group = $2
-                    ''', user_id, muscle_group)
+                    WHERE e.telegram_id = $1 AND e.muscle_group = $2
+                    ''', telegram_id, muscle_group)
                 logger.info("Упражнения успешно получены")
                 return [row['name'] for row in exercises]
         except Exception as e:
@@ -194,7 +201,7 @@ class Database:
             raise
     
     # TODO добавить docstring
-    async def get_muscle_groups(self, user_id: int) -> List[str]:
+    async def get_muscle_groups(self, telegram_id: int) -> List[str]:
         """
         Получить группы мышц пользователя
         """
@@ -202,9 +209,9 @@ class Database:
             async with self.pool.acquire() as conn:
                 muscle_groups = await conn.fetch('''
                     SELECT DISTINCT e.muscle_group FROM EXERCISE e
-                    WHERE e.user_id = $1
+                    WHERE e.telegram_id = $1
                     ORDER BY e.muscle_group
-                    ''', user_id)
+                    ''', telegram_id)
                 logger.info("Группы мышц успешно получены")
                 return [row['muscle_group'] for row in muscle_groups]
         except Exception as e:
@@ -212,7 +219,7 @@ class Database:
             raise
 
     # # TODO переписать
-    async def get_user_workouts(self, user_id: int, limit: int = 1) -> List[Dict]:
+    async def get_user_workouts(self, telegram_id: int, limit: int = 1) -> List[Dict]:
         """
         Получить тренировки пользователя
         """
@@ -223,11 +230,11 @@ class Database:
                     SUM(s.weight * s.reps) as total_volume
             FROM WORKOUT w
             LEFT JOIN SET s ON w.id = s.workout_id
-            WHERE w.user_id = $1
+            WHERE w.telegram_id = $1
             GROUP BY w.id, w.date
             ORDER BY w.date DESC
             LIMIT $2
-            ''', user_id, limit)
+            ''', telegram_id, limit)
             return [dict(w) for w in workouts]
 
     # TODO добавить docstring

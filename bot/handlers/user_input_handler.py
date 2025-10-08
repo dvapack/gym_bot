@@ -1,8 +1,10 @@
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.types import Message
 from bot.keyboard.keyboard import get_main_keyboard
 from database.database import Database
+from bot.FSM.fsm_states import States
+from aiogram.fsm.context import FSMContext
 
 db: Database = None
 
@@ -10,8 +12,9 @@ router = Router()
 user_id = None
 
 # TODO добавить docstring
-@router.message(Command("start"))
-async def command_start(message: Message):
+# TODO добавить логгер
+@router.message(StateFilter(None), Command("start"))
+async def command_start(message: Message, state: FSMContext):
     """
     Хендлер команды /start
     """
@@ -20,6 +23,7 @@ async def command_start(message: Message):
         return
     user = message.from_user
     user_id = await db.get_create_user(user.id)
+    await db._fill_exercises(user.id)
 
     text = f"""
     Привет, {user.first_name}!
@@ -34,3 +38,4 @@ async def command_start(message: Message):
         text,
         reply_markup=get_main_keyboard()
     )
+    await state.set_state(States.start)
