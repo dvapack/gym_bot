@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from bot.FSM.fsm_states import States, load_muscle_groups, load_exercises
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from bot.keyboard.keyboard import start_workout_keyboard, get_exercise_keyboard
+from bot.keyboard.keyboard import start_workout_keyboard, get_exercise_keyboard, get_back_keyboard
 from database.database import Database
 
 db: Database = None
@@ -65,4 +65,31 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
         reply_markup=get_exercise_keyboard(exersices)
     )
     await state.set_state(States.choosing_exercise)
+
+# TODO добавить docstring
+# TODO добавить логгер
+@router.callback_query(
+        States.choosing_exercise,
+        F.data.startswith("select_exercise"))
+async def select_exercise(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку с конкретным упражнением
+    """
+    if db is None or db.pool is None:
+        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    user = callback.from_user
+    exercise = callback.data.split(":")[1]
+    # TODO добавить получение айди упражнения и его сохранение в состояние
+    # TODO подумать над set_order
+    text = f"""
+    Вы выбрали {exercise}.
+Введите количество килограм и повторений
+(например, 20 10):
+    """
+    await callback.message.answer(
+        text,
+        reply_markup=get_back_keyboard()
+    )
+    await state.set_state(States.entering_set_info)
 

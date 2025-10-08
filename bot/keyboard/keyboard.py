@@ -57,5 +57,8 @@ def get_back_keyboard():
     """
     Клавиатура с кнопкой Назад
     """
-    keyboard = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main")]]
+    keyboard = [
+        [InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")],
+        [InlineKeyboardButton(text="Назад", callback_data="back_to_main")]
+    ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
