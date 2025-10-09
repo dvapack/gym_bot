@@ -53,7 +53,7 @@ async def select_exercise(message: Message, state: FSMContext):
     user = message.from_user
     ## TODO обернуть в трайкетч и добавить валидацию
     weight, reps = (int(number) for number in message.text.split())
-
+    set_id = await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
     text = f"""
     Вы выбрали {exercise}.
 Введите количество килограм и повторений

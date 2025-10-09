@@ -45,7 +45,7 @@ def get_exercise_keyboard(exercises: List[str]):
     """
     keyboard = []
     for exercise in exercises:
-        keyboard.append([InlineKeyboardButton(text=exercise, callback_data="select_exercise")])
+        keyboard.append([InlineKeyboardButton(text=exercise, callback_data=f"select_exercise:{exercise}")])
     keyboard.append([InlineKeyboardButton(text="Новое упражнение", callback_data="new_exercise")])
     keyboard.append([InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")])
     keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_main")])

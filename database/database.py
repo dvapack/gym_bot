@@ -163,7 +163,22 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при создании тренировки: {e}")
             raise
-    
+
+    # TODO добавить docstring
+    async def get_exercise_by_name(self, name: str, telegram_id: int) -> int:
+        try:
+            async with self.pool.acquire() as conn:
+                exercise_id = await conn.fetchval('''
+                    SELECT e.id FROM EXERCISE as e
+                    WHERE e.telegram_id = $1 AND e.name = $2
+                    RETURNING id
+                    ''', telegram_id, name)
+                logger.info("Упражнение получено")
+                return exercise_id
+        except Exception as e:
+            logger.critical(f"Ошибка при получении упражнения: {e}")
+            raise
+
     # TODO добавить docstring
     async def create_exercise(self, muscle_group: str, name: str, telegram_id: int) -> int:
         """
