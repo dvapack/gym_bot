@@ -46,7 +46,7 @@ async def command_start(message: Message, state: FSMContext):
 @router.message(States.entering_set_info)
 async def enter_set_information(message: Message, state: FSMContext):
     """
-    Хендлер ввода данных об упражнении
+    Хендлер ввода данных о первом подходе
     """
     if db is None or db.pool is None:
         await message.answer("Бот инициализируется, попробуйте через несколько секунд...")
@@ -57,16 +57,27 @@ async def enter_set_information(message: Message, state: FSMContext):
     workout_id = user_data.get("workout_id")
     exercise_id = user_data.get("exercise_id")
     exercise = user_data.get("exercise")
-    set_order = user_data['set_order'].get(exercise, 0)
+    set_order = user_data['set_order'].get(exercise, 0) + 1
     weight, reps = (int(number) for number in message.text.split())
     set_id = await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
-    await state.update_data(set_id=set_id)
+    data_updates = {
+        'exercise': exercise,
+        'exercise_id': exercise_id,
+        'set_order': {**user_data['set_order'], exercise: set_order},
+        'set_id': set_id
+    }
+    await state.update_data(**data_updates)
     sets = await db.get_workout_sets_by_exercise(exercise_id, workout_id)
-    text = f"""
-    Данные записаны!
-Текущие подходы:
-{sets}
-    """
+    text = """
+┌─────────────────────────┐
+                  Данные записаны!                  
+├─────────────────────────┤
+                  Текущие подходы:                   
+├─────────────────────────┤
+"""
+
+    for item in sets:
+        text += f"├─ Подход {item['set_order']}: {item['weight']}кг × {item['reps']} повторений  ┤\n"
     await message.answer(
         text,
         reply_markup=get_back_keyboard()

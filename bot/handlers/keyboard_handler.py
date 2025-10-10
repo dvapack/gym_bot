@@ -82,7 +82,7 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
     exercise = callback.data.split(":")[1]
     exercise_id = await db.get_exercise_by_name(exercise, user.id)
     user_data = await state.get_data()
-    current_set_order = user_data['set_order'].get(exercise, 0) + 1
+    current_set_order = user_data['set_order'].get(exercise, 0)
     data_updates = {
         'exercise': exercise,
         'exercise_id': exercise_id,

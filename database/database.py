@@ -277,7 +277,7 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
                 sets = await conn.fetch('''
-                SELECT s.weight, s.reps
+                SELECT s.set_order, s.weight, s.reps
                 FROM SET s
                 WHERE s.workout = $1 AND s.exercise = $2
                 ORDER BY s.set_order
