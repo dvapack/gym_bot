@@ -55,7 +55,7 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
 
-                await conn.execute('DROP TABLE IF EXISTS "SET" CASCADE')
+                await conn.execute('DROP TABLE IF EXISTS SET CASCADE')
                 await conn.execute('DROP TABLE IF EXISTS WORKOUT CASCADE')
                 await conn.execute('DROP TABLE IF EXISTS EXERCISE CASCADE')
                 await conn.execute('DROP TABLE IF EXISTS "USER" CASCADE')
@@ -87,7 +87,7 @@ class Database:
                     workout INTEGER NOT NULL REFERENCES WORKOUT(id) ON DELETE CASCADE,
                     exercise INTEGER NOT NULL REFERENCES EXERCISE(id),
                     set_order INTEGER NOT NULL,
-                    weight DECIMAL(3, 2),
+                    weight DECIMAL(5, 2),
                     reps INTEGER NOT NULL,
                     UNIQUE(workout, exercise, set_order)
                 )
@@ -165,13 +165,13 @@ class Database:
             raise
 
     # TODO добавить docstring
+    # логика хранения упражнений под вопросом
     async def get_exercise_by_name(self, name: str, telegram_id: int) -> int:
         try:
             async with self.pool.acquire() as conn:
                 exercise_id = await conn.fetchval('''
                     SELECT e.id FROM EXERCISE as e
                     WHERE e.telegram_id = $1 AND e.name = $2
-                    RETURNING id
                     ''', telegram_id, name)
                 logger.info("Упражнение получено")
                 return exercise_id
@@ -259,7 +259,7 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
                 set_id = await conn.fetchval('''
-                INSERT INTO SET (workout_id, exercise_id, set_order, weight, reps)
+                INSERT INTO SET (workout, exercise, set_order, weight, reps)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING id
                 ''', workout_id, exercise_id, set_order, weight, reps)
@@ -269,6 +269,26 @@ class Database:
             logger.critical(f"Ошибка при добавлении подхода к тренировке: {e}")
             raise
     
+    # TODO добавить docstring
+    async def get_workout_sets_by_exercise(self, exercise_id: int, workout_id: int) -> List[Dict]:
+        """
+        Получить подходы в конкретном упражнении тренировки
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                sets = await conn.fetch('''
+                SELECT s.weight, s.reps
+                FROM SET s
+                WHERE s.workout = $1 AND s.exercise = $2
+                ORDER BY s.set_order
+                ''', workout_id, exercise_id)
+                logger.info("Все подходы упражнения успешно получены")
+                return [dict(s) for s in sets]
+        except Exception as e:
+            logger.critical(f"Ошибка при получении подходов: {e}")
+            raise
+
+
     # TODO добавить docstring
     async def get_workout_sets(self, workout_id: int) -> List[Dict]:
         """

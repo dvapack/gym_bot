@@ -55,7 +55,7 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
     muscle_group = callback.data.split(":")[1]
 
     exersices = await load_exercises(user.id, muscle_group)
-
+    await state.update_data(set_order={})
     text = f"""
     Вы выбрали {muscle_group}.
 Выберите упражнение:
@@ -80,8 +80,15 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
         return
     user = callback.from_user
     exercise = callback.data.split(":")[1]
-    # TODO добавить получение айди упражнения и его сохранение в состояние
-    # TODO подумать над set_order
+    exercise_id = await db.get_exercise_by_name(exercise, user.id)
+    user_data = await state.get_data()
+    current_set_order = user_data['set_order'].get(exercise, 0) + 1
+    data_updates = {
+        'exercise': exercise,
+        'exercise_id': exercise_id,
+        'set_order': {**user_data['set_order'], exercise: current_set_order}
+    }
+    await state.update_data(**data_updates)
     text = f"""
     Вы выбрали {exercise}.
 Введите количество килограм и повторений

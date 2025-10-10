@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
 from aiogram.types import Message
-from bot.keyboard.keyboard import get_main_keyboard
+from bot.keyboard.keyboard import get_main_keyboard, get_back_keyboard
 from database.database import Database
 from bot.FSM.fsm_states import States
 from aiogram.fsm.context import FSMContext
@@ -40,26 +40,34 @@ async def command_start(message: Message, state: FSMContext):
     )
     await state.set_state(States.start)
 
+
 # TODO добавить docstring
 # TODO добавить логгер
 @router.message(States.entering_set_info)
-async def select_exercise(message: Message, state: FSMContext):
+async def enter_set_information(message: Message, state: FSMContext):
     """
-    Хендлер нажатия на кнопку с конкретным упражнением
+    Хендлер ввода данных об упражнении
     """
     if db is None or db.pool is None:
         await message.answer("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = message.from_user
     ## TODO обернуть в трайкетч и добавить валидацию
+    user_data = await state.get_data()
+    workout_id = user_data.get("workout_id")
+    exercise_id = user_data.get("exercise_id")
+    exercise = user_data.get("exercise")
+    set_order = user_data['set_order'].get(exercise, 0)
     weight, reps = (int(number) for number in message.text.split())
     set_id = await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
+    await state.update_data(set_id=set_id)
+    sets = await db.get_workout_sets_by_exercise(exercise_id, workout_id)
     text = f"""
-    Вы выбрали {exercise}.
-Введите количество килограм и повторений
-(например, 20 10):
+    Данные записаны!
+Текущие подходы:
+{sets}
     """
-    await callback.message.answer(
+    await message.answer(
         text,
         reply_markup=get_back_keyboard()
     )
