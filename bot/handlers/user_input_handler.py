@@ -69,17 +69,13 @@ async def enter_set_information(message: Message, state: FSMContext):
     await state.update_data(**data_updates)
     sets = await db.get_workout_sets_by_exercise(exercise_id, workout_id)
     text = """
-┌─────────────────────────┐
-                  Данные записаны!                  
-├─────────────────────────┤
-                  Текущие подходы:                   
-├─────────────────────────┤
+Данные записаны!                  
+Текущие подходы:                   
 """
-
     for item in sets:
-        text += f"├─ Подход {item['set_order']}: {item['weight']}кг × {item['reps']} повторений  ┤\n"
+        text += f"{item['set_order']}: {item['weight']}кг × {item['reps']} повторений\n"
     await message.answer(
         text,
-        reply_markup=get_back_keyboard()
+        reply_markup=get_back_keyboard('exercise')
     )
     await state.set_state(States.entering_set_info)
