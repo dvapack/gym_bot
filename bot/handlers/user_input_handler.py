@@ -59,12 +59,11 @@ async def enter_set_information(message: Message, state: FSMContext):
     exercise = user_data.get("exercise")
     set_order = user_data['set_order'].get(exercise, 0) + 1
     weight, reps = (int(number) for number in message.text.split())
-    set_id = await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
+    await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
     data_updates = {
         'exercise': exercise,
         'exercise_id': exercise_id,
-        'set_order': {**user_data['set_order'], exercise: set_order},
-        'set_id': set_id
+        'set_order': {**user_data['set_order'], exercise: set_order} 
     }
     await state.update_data(**data_updates)
     sets = await db.get_workout_sets_by_exercise(exercise_id, workout_id)

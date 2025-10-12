@@ -81,12 +81,9 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
     user = callback.from_user
     exercise = callback.data.split(":")[1]
     exercise_id = await db.get_exercise_by_name(exercise, user.id)
-    user_data = await state.get_data()
-    current_set_order = user_data['set_order'].get(exercise, 0)
     data_updates = {
         'exercise': exercise,
-        'exercise_id': exercise_id,
-        'set_order': {**user_data['set_order'], exercise: current_set_order}
+        'exercise_id': exercise_id
     }
     await state.update_data(**data_updates)
     text = f"""
@@ -103,7 +100,7 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
 # TODO добавить docstring
 # TODO добавить логгер
 @router.callback_query(F.data == 'finish_workout')
-async def select_exercise(callback: CallbackQuery, state: FSMContext):
+async def finish_workout(callback: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия на кнопку завершения тренировки
     """
@@ -164,7 +161,6 @@ async def back_to_choosing_exercise(callback: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     muscle_group = user_data['muscle_group']
     exersices = await load_exercises(user.id, muscle_group)
-    await state.update_data(set_order={})
     text = f"""
     Вы выбрали {muscle_group}.
 Выберите упражнение:
