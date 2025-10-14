@@ -3,8 +3,9 @@ from aiogram.filters import Command, StateFilter
 from bot.FSM.fsm_states import States, load_muscle_groups, load_exercises
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from bot.keyboard.keyboard import start_workout_keyboard, get_exercise_keyboard, get_back_keyboard, get_main_keyboard
+from bot.keyboard.keyboard import start_workout_keyboard, get_exercise_keyboard, get_back_keyboard, get_main_keyboard, get_last_workouts_keyboard, back_from_workout_view
 from database.database import Database
+from datetime import datetime
 
 db: Database = None
 
@@ -69,6 +70,33 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
 # TODO добавить docstring
 # TODO добавить логгер
 @router.callback_query(
+        States.view_workouts,
+        F.data.startswith("get_workout"))
+async def select_workout(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку с конкретной тренировкой
+    """
+    if db is None or db.pool is None:
+        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    user = callback.from_user
+    date = callback.data.split(":")[1]
+    date = datetime.strptime(date, "%Y-%m-%d")
+    workout = await db.get_workout_by_date(telegram_id=user.id, date=date)
+    text = f"""
+Тренировка {str(date)}:
+"""
+    for item in workout:
+        text += f"{item['name']} - Подход: {item['set_order']} - {item['weight']}кг × {item['reps']} повторений\n"
+    await callback.message.answer(
+        text,
+        reply_markup=back_from_workout_view()
+    )
+    await state.set_state(States.view_workouts)
+
+# TODO добавить docstring
+# TODO добавить логгер
+@router.callback_query(
         States.choosing_exercise,
         F.data.startswith("select_exercise"))
 async def select_exercise(callback: CallbackQuery, state: FSMContext):
@@ -121,6 +149,28 @@ async def finish_workout(callback: CallbackQuery, state: FSMContext):
     )
     await state.set_state(States.start)
 
+@router.callback_query(
+        StateFilter(States.start, States.view_workouts),
+        F.data == 'my_workouts')
+async def view_workouts(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку мои последние тренировки
+    """
+    if db is None or db.pool is None:
+        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    await state.set_data({})
+    user = callback.from_user
+    dates = await db.get_workout_dates(telegram_id=user.id)
+    text = f"""
+Выберите тренировку:
+    """
+    await callback.message.answer(
+        text,
+        reply_markup=get_last_workouts_keyboard(dates)
+    )
+    await state.set_state(States.view_workouts)
+
 # TODO добавить docstring
 # TODO добавить логгер
 @router.callback_query(
@@ -170,3 +220,27 @@ async def back_to_choosing_exercise(callback: CallbackQuery, state: FSMContext):
         reply_markup=get_exercise_keyboard(exersices)
     )
     await state.set_state(States.choosing_exercise)
+
+# TODO добавить docstring
+# TODO добавить логгер
+@router.callback_query(
+        States.view_workouts,
+        F.data == 'back_to_main')
+async def back_to_main(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку назад при просмотре тренировок
+    """
+    if db is None or db.pool is None:
+        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    await state.set_data({})
+    text = f"""
+Выбери действие ниже или используй команды:
+/new_workout - Начать новую тренировку
+/my_workouts - Мои последние тренировки
+    """
+    await callback.message.answer(
+        text,
+        reply_markup=get_main_keyboard()
+    )
+    await state.set_state(States.start)

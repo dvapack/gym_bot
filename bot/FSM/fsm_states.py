@@ -47,5 +47,4 @@ class States(StatesGroup):
     adding_muscle_group = State()
     choosing_exercise = State()
     adding_exercise = State()
-    entering_first_set_info = State()
     entering_set_info = State()

@@ -232,8 +232,39 @@ class Database:
         except Exception as e:
             logger.critical(f"Ошибка при получении групп мышц: {e}")
             raise
+    
+    # TODO добавить логгер
+    async def get_workout_dates(self, telegram_id: int, limit: int = 10) -> List[str]:
+        """
+        Получить даты тренировок пользователя
+        """
+        async with self.pool.acquire() as conn:
+            dates = await conn.fetch('''
+            SELECT w.date FROM WORKOUT w
+            WHERE w.telegram_id = $1
+            LIMIT $2
+            ''', telegram_id, limit)
+        return [str(row['date']) for row in dates]
+    
+    # TODO добавить логгер
+    async def get_workout_by_date(self, telegram_id: int, date) -> List[Dict]:
+        """
+        Получить даты тренировок пользователя
+        """
+        async with self.pool.acquire() as conn:
+            workout = await conn.fetch('''
+            SELECT w.date,
+                    e.name, e.muscle_group,
+                    s.weight, s.reps, s.set_order
+            FROM SET s
+            INNER JOIN WORKOUT w ON w.id = s.workout
+            INNER JOIN EXERCISE e ON e.id = s.exercise 
+            WHERE w.telegram_id = $1 AND w.date = $2
+            ORDER BY e.muscle_group DESC, e.name DESC, s.set_order ASC
+            ''', telegram_id, date)
+        return [dict(set) for set in workout]
 
-    # # TODO переписать
+    # TODO переписать
     async def get_user_workouts(self, telegram_id: int, limit: int = 1) -> List[Dict]:
         """
         Получить тренировки пользователя
@@ -241,13 +272,13 @@ class Database:
         async with self.pool.acquire() as conn:
             workouts = await conn.fetch('''
             SELECT w.id, w.date,
-                    COUNT(s.id) as exercise_count,
-                    SUM(s.weight * s.reps) as total_volume
-            FROM WORKOUT w
-            LEFT JOIN SET s ON w.id = s.workout_id
+                    e.name, e.muscle_group,
+                    s.weight, s.reps, s.set_order
+            FROM SET s
+            INNER JOIN WORKOUT w ON w.id = s.workout
+            INNER JOIN EXERCISE e ON e.id = s.exercise 
             WHERE w.telegram_id = $1
-            GROUP BY w.id, w.date
-            ORDER BY w.date DESC
+            ORDER BY w.date, e.muscle_group, e.name, s.set_order DESC
             LIMIT $2
             ''', telegram_id, limit)
             return [dict(w) for w in workouts]

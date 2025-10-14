@@ -52,6 +52,7 @@ def get_exercise_keyboard(exercises: List[str]):
 
 # TODO добавить docstring
 # TODO добавить логгер
+# TODO переделать логику
 def get_back_keyboard(destination: str = 'main'):
     """
     Клавиатура с кнопкой Назад
@@ -59,5 +60,29 @@ def get_back_keyboard(destination: str = 'main'):
     keyboard = [
         [InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")],
         [InlineKeyboardButton(text="Назад", callback_data="back_to_exercise")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+# TODO добавить docstring
+# TODO добавить логгер
+def get_last_workouts_keyboard(workouts: List[str]):
+    """
+    Клавиатура для выбора тренировки
+    """
+    keyboard = []
+    for date in workouts:
+        keyboard.append([InlineKeyboardButton(text=date, callback_data=f"get_workout:{date}")])
+    keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_main")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+# TODO добавить docstring
+# TODO добавить логгер
+def back_from_workout_view():
+    """
+    Клавиатура для выхода из просмотра тренировки
+    """
+    keyboard = [
+        [InlineKeyboardButton(text="В главное меню", callback_data="back_to_main")],
+        [InlineKeyboardButton(text="Назад", callback_data="my_workouts")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
