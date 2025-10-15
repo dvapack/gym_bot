@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 from database.database import Database
 
-from bot.keyboard.keyboard import get_main_keyboard, get_back_keyboard
+from bot.keyboard.keyboard import get_main_keyboard, get_back_to_exercises
 from bot.FSM.fsm_states import States
 
 import logging
@@ -95,6 +95,6 @@ async def enter_set_information(message: Message, state: FSMContext):
         text += f"{item['set_order']}: {item['weight']}кг × {item['reps']} повторений\n"
     await message.answer(
         text,
-        reply_markup=get_back_keyboard('exercise')
+        reply_markup=get_back_to_exercises()
     )
     await state.set_state(States.entering_set_info)
