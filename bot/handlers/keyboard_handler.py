@@ -22,7 +22,7 @@ async def create_new_workout(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку "Новая тренировка"
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     workout_id = await db.create_workout(user.id)
@@ -34,7 +34,7 @@ async def create_new_workout(callback: CallbackQuery, state: FSMContext):
     Вы начали тренировку.
 Выберите группу мышц:
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=start_workout_keyboard(muscle_groups)
     )
@@ -50,7 +50,7 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку с конкретной группой мышц
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     muscle_group = callback.data.split(":")[1]
@@ -61,7 +61,7 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
     Вы выбрали {muscle_group}.
 Выберите упражнение:
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_exercise_keyboard(exersices)
     )
@@ -77,7 +77,7 @@ async def select_workout(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку с конкретной тренировкой
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     date = callback.data.split(":")[1]
@@ -88,7 +88,7 @@ async def select_workout(callback: CallbackQuery, state: FSMContext):
 """
     for item in workout:
         text += f"{item['name']} - Подход: {item['set_order']} - {item['weight']}кг × {item['reps']} повторений\n"
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=back_from_workout_view()
     )
@@ -104,7 +104,7 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку с конкретным упражнением
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     exercise = callback.data.split(":")[1]
@@ -119,7 +119,7 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
 Введите количество килограм и повторений
 (например, 20 10):
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_back_keyboard('exercise')
     )
@@ -133,7 +133,7 @@ async def finish_workout(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку завершения тренировки
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     await state.set_data({})
     text = f"""
@@ -143,7 +143,7 @@ async def finish_workout(callback: CallbackQuery, state: FSMContext):
 /new_workout - Начать новую тренировку
 /my_workouts - Мои последние тренировки
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_main_keyboard()
     )
@@ -157,7 +157,7 @@ async def view_workouts(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку мои последние тренировки
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     await state.set_data({})
     user = callback.from_user
@@ -165,7 +165,7 @@ async def view_workouts(callback: CallbackQuery, state: FSMContext):
     text = f"""
 Выберите тренировку:
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_last_workouts_keyboard(dates)
     )
@@ -181,7 +181,7 @@ async def back_to_choosing_muscle_group(callback: CallbackQuery, state: FSMConte
     Хендлер нажатия на кнопку назад при выборе упражнения
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     muscle_groups = await load_muscle_groups(user.id)
@@ -189,7 +189,7 @@ async def back_to_choosing_muscle_group(callback: CallbackQuery, state: FSMConte
     text = f"""
 Выберите группу мышц:
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=start_workout_keyboard(muscle_groups)
     )
@@ -205,7 +205,7 @@ async def back_to_choosing_exercise(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку назад при вводе данных о подходе
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = callback.from_user
     user_data = await state.get_data()
@@ -215,7 +215,7 @@ async def back_to_choosing_exercise(callback: CallbackQuery, state: FSMContext):
     Вы выбрали {muscle_group}.
 Выберите упражнение:
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_exercise_keyboard(exersices)
     )
@@ -231,7 +231,7 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext):
     Хендлер нажатия на кнопку назад при просмотре тренировок
     """
     if db is None or db.pool is None:
-        await callback.message.answer("Бот инициализируется, попробуйте через несколько секунд...")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
         return
     await state.set_data({})
     text = f"""
@@ -239,7 +239,7 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext):
 /new_workout - Начать новую тренировку
 /my_workouts - Мои последние тренировки
     """
-    await callback.message.answer(
+    await callback.message.edit_text(
         text,
         reply_markup=get_main_keyboard()
     )
