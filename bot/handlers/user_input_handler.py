@@ -1,27 +1,39 @@
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.filters import Command, StateFilter
 from aiogram.types import Message
-from bot.keyboard.keyboard import get_main_keyboard, get_back_keyboard
-from database.database import Database
-from bot.FSM.fsm_states import States
 from aiogram.fsm.context import FSMContext
+
+from database.database import Database
+
+from bot.keyboard.keyboard import get_main_keyboard, get_back_keyboard
+from bot.FSM.fsm_states import States
+
+import logging
 
 db: Database = None
 
-router = Router()
-user_id = None
+logger = logging.getLogger(__name__)
 
-# TODO добавить docstring
-# TODO добавить логгер
+router = Router()
+
 @router.message(StateFilter(None), Command("start"))
 async def command_start(message: Message, state: FSMContext):
     """
     Хендлер команды /start
+
+    Args:
+        message (Message): сообщение пользователя
+        state (FSMContext): состояние, в котором находится пользователь
+
+    Returns:
+        Новое сообщение с клавиатурой
     """
     if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована")
         await message.answer("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = message.from_user
+    logger.info("Получена /start команда от user_id=%s", user.id)
     user_id = await db.get_create_user(user.id)
     await db._fill_exercises(user.id)
 
@@ -41,14 +53,20 @@ async def command_start(message: Message, state: FSMContext):
     await state.set_state(States.start)
 
 
-# TODO добавить docstring
-# TODO добавить логгер
 @router.message(States.entering_set_info)
 async def enter_set_information(message: Message, state: FSMContext):
     """
     Хендлер ввода данных о первом подходе
+    
+    Args:
+        message (Message): сообщение пользователя
+        state (FSMContext): состояние, в котором находится пользователь
+
+    Returns:
+        Новое сообщение с клавиатурой
     """
     if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована")
         await message.answer("Бот инициализируется, попробуйте через несколько секунд...")
         return
     user = message.from_user
@@ -59,6 +77,8 @@ async def enter_set_information(message: Message, state: FSMContext):
     exercise = user_data.get("exercise")
     set_order = user_data['set_order'].get(exercise, 0) + 1
     weight, reps = (int(number) for number in message.text.split())
+    logger.debug("Добавление подхода: workout_id=%s, exercise_id=%s, set_order=%s, weight=%s, reps=%s",
+                 workout_id, exercise_id, set_order, weight, reps)
     await db.add_set_to_workout(workout_id, exercise_id, set_order, weight, reps)
     data_updates = {
         'exercise': exercise,

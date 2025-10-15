@@ -1,13 +1,12 @@
-from typing import List, Dict
+from typing import List
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-# TODO добавить логгер
 def get_main_keyboard():
     """
     Основная клавиатура
 
     Returns:
-        InlineKeyboardMarkup: Клавиатуру с кнопками: новая тренировка и мои тренировки
+        InlineKeyboardMarkup: Клавиатура с кнопками: новая тренировка и мои тренировки
     """
     keyboard = [
         [
@@ -17,8 +16,6 @@ def get_main_keyboard():
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# TODO пересмотреть кнопки
-# TODO добавить логгер
 def start_workout_keyboard(muscle_groups: List[str]):
     """
     Клавиатура для новой тренировки
@@ -27,7 +24,7 @@ def start_workout_keyboard(muscle_groups: List[str]):
         muscle_groups (List[str]): Мышечные группы
 
     Returns:
-        InlineKeyboardMarkup: Клавиатуру с выбором мышечной группы или добавлением новой
+        InlineKeyboardMarkup: Клавиатура с выбором мышечной группы или добавлением новой
     """
     keyboard = []
     for muscle_group in muscle_groups:
@@ -36,11 +33,12 @@ def start_workout_keyboard(muscle_groups: List[str]):
     keyboard.append([InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# TODO добавить docstring
-# TODO добавить логгер
 def get_exercise_keyboard(exercises: List[str]):
     """
     Клавиатура для выбора упражнения
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с выбором упражнения или добавлением нового
     """
     keyboard = []
     for exercise in exercises:
@@ -50,12 +48,12 @@ def get_exercise_keyboard(exercises: List[str]):
     keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_muscle_group")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# TODO добавить docstring
-# TODO добавить логгер
-# TODO переделать логику
-def get_back_keyboard(destination: str = 'main'):
+def get_back_to_exercises():
     """
-    Клавиатура с кнопкой Назад
+    Клавиатура для возврата к упражнениям или для завершения тренировки
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с кнопкой назад и завершением тренировки
     """
     keyboard = [
         [InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")],
@@ -63,11 +61,16 @@ def get_back_keyboard(destination: str = 'main'):
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# TODO добавить docstring
-# TODO добавить логгер
+
 def get_last_workouts_keyboard(workouts: List[str]):
     """
     Клавиатура для выбора тренировки
+
+    Args:
+        workouts (List[str]): Список с датами тренировок
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с выбором тренировки
     """
     keyboard = []
     for date in workouts:
@@ -75,11 +78,12 @@ def get_last_workouts_keyboard(workouts: List[str]):
     keyboard.append([InlineKeyboardButton(text="Назад", callback_data="back_to_main")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-# TODO добавить docstring
-# TODO добавить логгер
 def back_from_workout_view():
     """
     Клавиатура для выхода из просмотра тренировки
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с кнопкой назад и выходом в главное меню
     """
     keyboard = [
         [InlineKeyboardButton(text="В главное меню", callback_data="back_to_main")],

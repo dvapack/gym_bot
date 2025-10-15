@@ -1,16 +1,15 @@
-import asyncio
-from typing import List, Dict
-from aiogram import Bot, Dispatcher, Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.filters import Command, CommandStart
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from database.database import Database
 import logging
-from configs.logger_config import setup_logging
-from configs.config_reader import config
+import asyncio
+
+from aiogram import Bot, Dispatcher
 from bot.handlers import user_input_handler, keyboard_handler
 from bot.FSM import fsm_states
+
+from database.database import Database
+
+from configs.logger_config import setup_logging
+from configs.config_reader import config
+
 
 
 setup_logging()

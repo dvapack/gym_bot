@@ -1,10 +1,13 @@
 from aiogram.fsm.state import StatesGroup, State
 from database.database import Database
+
 from typing import List
+import logging
 
 db: Database = None
 
-# TODO добавить логгер
+logger = logging.getLogger(__name__)
+
 async def load_muscle_groups(telegram_id: int) -> List[str]:
     """
     Загрузка доступных групп мышц из базы данных
@@ -16,12 +19,12 @@ async def load_muscle_groups(telegram_id: int) -> List[str]:
         available_muscle_groups (List[str]): Список доступных групп мышц
     """
     if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована при загрузке групп мышц")
         available_muscle_groups = []
         return available_muscle_groups
     available_muscle_groups = await db.get_muscle_groups(telegram_id)
     return available_muscle_groups
 
-# TODO добавить логгер
 async def load_exercises(telegram_id: int, muscle_group: str) -> List[str]:
     """
     Загрузка доступных упражнений из базы данных
@@ -34,12 +37,12 @@ async def load_exercises(telegram_id: int, muscle_group: str) -> List[str]:
         available_exercises (List[str]): Список доступных упражнений для выбранной группы мышц
     """
     if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована при загрузке упражнений")
         available_exercises = []
         return available_exercises
     available_exercises = await db.get_exercises_by_muscle_group(telegram_id, muscle_group)
     return available_exercises
 
-# TODO пересмотреть состояния
 class States(StatesGroup):
     start = State()
     view_workouts = State()
