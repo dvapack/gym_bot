@@ -4,8 +4,6 @@ from aiogram.types import Message, ContentType
 from aiogram.fsm.context import FSMContext
 
 import tempfile
-import os
-from datetime import datetime
 
 from database.database import Database
 

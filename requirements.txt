@@ -1,0 +1,7 @@
+pandas
+aiogram
+python-dotenv
+psycopg2-binary
+asyncpg
+pydantic
+pydantic-settings

@@ -1,7 +1,5 @@
-from anaconda_catalogs.catalog import USER_AGENT
 import asyncpg
 from typing import Optional, Dict, Any, List
-import os
 import logging
 from configs.logger_config import setup_logging
 from configs.config_reader import config
@@ -55,10 +53,10 @@ class Database:
         try:
             async with self.pool.acquire() as conn:
 
-                await conn.execute('DROP TABLE IF EXISTS SET CASCADE')
-                await conn.execute('DROP TABLE IF EXISTS WORKOUT CASCADE')
-                await conn.execute('DROP TABLE IF EXISTS EXERCISE CASCADE')
-                await conn.execute('DROP TABLE IF EXISTS "USER" CASCADE')
+                ##await conn.execute('DROP TABLE IF EXISTS SET CASCADE')
+                ##await conn.execute('DROP TABLE IF EXISTS WORKOUT CASCADE')
+                ##await conn.execute('DROP TABLE IF EXISTS EXERCISE CASCADE')
+                ##await conn.execute('DROP TABLE IF EXISTS "USER" CASCADE')
 
                 await conn.execute('''
                 CREATE TABLE IF NOT EXISTS "USER" (
