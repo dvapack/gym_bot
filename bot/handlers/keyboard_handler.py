@@ -20,6 +20,45 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 ###########################
+# Flow загрузки данных
+###########################
+@router.callback_query(
+        States.start,
+        F.data == "import_data")
+async def import_data(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку "Импорт данных"
+
+    Args:
+        callback (CallbackQuery): кнопка, на которую нажал пользователь
+        state (FSMContext): состояние, в котором находится пользователь
+
+    Returns:
+        Новое сообщение с инструкцией по импорту данных
+    """
+    if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    user = callback.from_user
+    logger.info("Пользователь %s начал импорт данных", user.id)
+
+    text = f"""
+Вы выбрали импорт данных.
+Пожалуйста, отправьте CSV файл с вашими тренировками в следующем формате:
+Date	Exercise	Category	Weight	Weight Unit	Reps
+Пример:
+2024-01-01, Жим лежа, Грудь, 80, kgs, 10
+2024-01-01, Жим лежа, Грудь, 85, kgs, 8
+После отправки файла, ваши данные будут обработаны и добавлены в базу данных.
+    """
+    await callback.message.edit_text(
+        text,
+        reply_markup=get_main_keyboard()
+    )
+    await state.set_state(States.import_data)
+
+###########################
 # Flow заполнения тренировки
 ###########################
 @router.callback_query(
@@ -92,6 +131,72 @@ async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(
         States.choosing_exercise,
+        F.data == "new_exercise")
+async def add_exercise(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку "Новое упражнение"
+
+    Args:
+        callback (CallbackQuery): кнопка, на которую нажал пользователь
+        state (FSMContext): состояние, в котором находится пользователь
+
+    Returns:
+        Текст с инструкцией по добавлению нового упражнения
+    """
+    if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    user = callback.from_user
+    logger.info("Пользователь %s начал новую тренировку", user.id)
+    text = f"""
+    Чтобы добавить новое упражнение, пожалуйста, введите его название и группу мышц в формате:
+Название упражнения
+Пример:
+Жим гантелей
+    """
+    await callback.message.edit_text(
+        text,
+        reply_markup=get_back_to_exercises()
+    )
+    await state.set_state(States.adding_exercise)
+
+@router.callback_query(
+        States.choosing_muscle_group,
+        F.data.startswith("select_muscle_group"))
+async def select_muscle_group(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия на кнопку с конкретной группой мышц
+
+    Args:
+        callback (CallbackQuery): кнопка, на которую нажал пользователь
+        state (FSMContext): состояние, в котором находится пользователь
+
+    Returns:
+        Новое сообщение с клавиатурой
+    """
+    if db is None or db.pool is None:
+        logger.warning("База данных не инициализирована")
+        await callback.message.edit_text("Бот инициализируется, попробуйте через несколько секунд...")
+        return
+    user = callback.from_user
+    muscle_group = callback.data.split(":")[1]
+    await state.update_data(muscle_group=muscle_group)
+    exersices = await load_exercises(user.id, muscle_group)
+    await state.update_data(set_order={})
+    text = f"""
+    Вы выбрали {muscle_group}.
+Выберите упражнение:
+    """
+    await callback.message.edit_text(
+        text,
+        reply_markup=get_exercise_keyboard(exersices)
+    )
+    await state.set_state(States.choosing_exercise)
+    
+
+@router.callback_query(
+        States.choosing_exercise,
         F.data.startswith("select_exercise"))
 async def select_exercise(callback: CallbackQuery, state: FSMContext):
     """
@@ -128,7 +233,7 @@ async def select_exercise(callback: CallbackQuery, state: FSMContext):
     await state.set_state(States.entering_set_info)
 
 @router.callback_query(
-        States.entering_set_info,
+        StateFilter(States.entering_set_info, States.adding_exercise),
         F.data == "back_to_exercise")
 async def back_to_choosing_exercise(callback: CallbackQuery, state: FSMContext):
     """
@@ -287,7 +392,7 @@ async def select_workout(callback: CallbackQuery, state: FSMContext):
     await state.set_state(States.view_workouts)
 
 @router.callback_query(
-        States.view_workouts,
+        StateFilter(States.view_workouts, States.view_workouts),
         F.data == 'back_to_main')
 async def back_to_main(callback: CallbackQuery, state: FSMContext):
     """

@@ -45,6 +45,7 @@ async def load_exercises(telegram_id: int, muscle_group: str) -> List[str]:
 
 class States(StatesGroup):
     start = State()
+    import_data = State()
     view_workouts = State()
     choosing_muscle_group = State()
     adding_muscle_group = State()

@@ -11,7 +11,8 @@ def get_main_keyboard():
     keyboard = [
         [
             InlineKeyboardButton(text="Новая тренировка", callback_data="new_workout"),
-            InlineKeyboardButton(text="Мои тренировки", callback_data="my_workouts")
+            InlineKeyboardButton(text="Мои тренировки", callback_data="my_workouts"),
+            InlineKeyboardButton(text="Импорт данных", callback_data="import_data")
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -29,7 +30,7 @@ def start_workout_keyboard(muscle_groups: List[str]):
     keyboard = []
     for muscle_group in muscle_groups:
         keyboard.append([InlineKeyboardButton(text=muscle_group, callback_data=f"select_muscle_group:{muscle_group}")])
-    keyboard.append([InlineKeyboardButton(text="Новая группа мышц", callback_data="new_muscle_group")])
+    ## пока низя keyboard.append([InlineKeyboardButton(text="Новая группа мышц", callback_data="new_muscle_group")])
     keyboard.append([InlineKeyboardButton(text="Завершить тренировку", callback_data="finish_workout")])
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 

@@ -76,8 +76,8 @@ class Database:
                 CREATE TABLE IF NOT EXISTS EXERCISE (
                     id SERIAL PRIMARY KEY,
                     telegram_id BIGINT NOT NULL REFERENCES "USER"(telegram_id),
-                    muscle_group VARCHAR(50),
-                    name VARCHAR(50) NOT NULL,
+                    muscle_group VARCHAR(150) NOT NULL,
+                    name VARCHAR(150) NOT NULL,
                     UNIQUE(telegram_id, name)
                 )
                 ''')
@@ -103,16 +103,15 @@ class Database:
         """
         try:
             exercises = [
-                ("Жим штанги лежа", "Грудь"),
-                ("Приседания со штангой", "Ноги"),
-                ("Становая тяга", "Спина"),
-                ("Подтягивания", "Спина"),
-                ("Отжимания", "Грудь"),
-                ("Жим гантелей сидя", "Плечи"),
-                ("Сгибания на бицепс", "Руки"),
-                ("Французский жим", "Руки"),
-                ("Выпады", "Ноги"),
-                ("Планка", "Пресс")
+                ("Жим штанги лежа", "Chest"),
+                ("Приседания со штангой", "Legs"),
+                ("Становая тяга", "Back"),
+                ("Подтягивания", "Back"),
+                ("Жим гантелей сидя", "Shoulders"),
+                ("Подъем штанги", "Biceps"),
+                ("Французский жим", "Triceps"),
+                ("Выпады", "Legs"),
+                ("Планка", "Abs")
             ]
 
             async with self.pool.acquire() as conn:
@@ -165,6 +164,24 @@ class Database:
             raise
 
     # TODO добавить docstring
+    async def import_workout(self, telegram_id: int, date) -> int:
+        """
+        Импортировать тренировку
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                workout_id = await conn.fetchval('''
+                    INSERT INTO WORKOUT (telegram_id, date)
+                    VALUES ($1, $2)
+                    RETURNING id
+                    ''', telegram_id, date)
+                logger.info("Тренировка успешно импортирована")
+                return workout_id
+        except Exception as e:
+            logger.critical(f"Ошибка при импорте тренировки: {e}")
+            raise
+
+    # TODO добавить docstring
     # логика хранения упражнений под вопросом
     async def get_exercise_by_name(self, name: str, telegram_id: int) -> int:
         try:
@@ -189,7 +206,7 @@ class Database:
                 exercise_id = await conn.fetchval('''
                     INSERT INTO EXERCISE (name, muscle_group, telegram_id)
                     VALUES ($1, $2, $3)
-                    ON CONFLICT (name) DO NOTHING
+                    ON CONFLICT (telegram_id, name) DO NOTHING
                     RETURNING id
                     ''', name, muscle_group, telegram_id)
                 logger.info("Упражнение успешно создано")
@@ -242,6 +259,7 @@ class Database:
             dates = await conn.fetch('''
             SELECT w.date FROM WORKOUT w
             WHERE w.telegram_id = $1
+            ORDER BY w.date DESC
             LIMIT $2
             ''', telegram_id, limit)
         return [str(row['date']) for row in dates]
@@ -278,7 +296,7 @@ class Database:
             INNER JOIN WORKOUT w ON w.id = s.workout
             INNER JOIN EXERCISE e ON e.id = s.exercise 
             WHERE w.telegram_id = $1
-            ORDER BY w.date, e.muscle_group, e.name, s.set_order DESC
+            ORDER BY w.date DESC, e.muscle_group, e.name, s.set_order
             LIMIT $2
             ''', telegram_id, limit)
             return [dict(w) for w in workouts]
